@@ -40,6 +40,26 @@ function Login({ onEnter,theme,onTheme,onDemo }: { onEnter: () => void;theme:The
   return <main className={`login-shell theme-${theme}`}><ThemeButton theme={theme} onChange={onTheme} wide/><section className="login-card"><Logo theme={theme}/><div className="login-heading"><span className="eyebrow">PERFIL DO CLIENTE</span><h1>Acesso ao painel comercial</h1><p>Use seu nome de usuário corporativo e sua senha.</p></div><form onSubmit={submit}><label>Usuário<input value={username} onChange={e=>setUsername(e.target.value)} type="text" placeholder="ex.: luana" autoComplete="username" required/></label><label>Senha<input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Sua senha" autoComplete="current-password" required/></label><button className="primary full" disabled={busy}>{busy?'Entrando…':'Entrar'} <ArrowRight size={18}/></button></form><button className="text-button login-reset" type="button" onClick={resetPassword}>Esqueci minha senha</button>{notice&&<div className="notice"><AlertCircle size={16}/>{notice}</div>}{import.meta.env.DEV&&<button className="secondary full demo-access" type="button" onClick={onDemo}>Continuar no protótipo local</button>}<div className="prototype-note"><ShieldCheck size={17}/><span>O acesso online usa autenticação segura e recuperação de senha pelo e-mail corporativo.</span></div></section></main>
 }
 
+function SetPassword({ onComplete,theme,onTheme }: {onComplete:()=>void;theme:Theme;onTheme:()=>void}) {
+  const [password,setPassword]=useState('')
+  const [confirmation,setConfirmation]=useState('')
+  const [busy,setBusy]=useState(false)
+  const [notice,setNotice]=useState('')
+  async function submit(event:FormEvent){
+    event.preventDefault();setNotice('')
+    if(password.length<8){setNotice('A senha precisa ter pelo menos 8 caracteres.');return}
+    if(password!==confirmation){setNotice('As senhas informadas não são iguais.');return}
+    if(!supabase){setNotice('Não foi possível acessar o ambiente seguro.');return}
+    setBusy(true)
+    const {error}=await supabase.auth.updateUser({password})
+    setBusy(false)
+    if(error){setNotice('O link expirou ou já foi utilizado. Solicite um novo link.');return}
+    window.history.replaceState({},document.title,window.location.pathname)
+    onComplete()
+  }
+  return <main className={`login-shell theme-${theme}`}><ThemeButton theme={theme} onChange={onTheme} wide/><section className="login-card"><Logo theme={theme}/><div className="login-heading"><span className="eyebrow">ACESSO SEGURO</span><h1>Defina sua nova senha</h1><p>Crie uma senha exclusiva para acessar o painel comercial.</p></div><form onSubmit={submit}><label>Nova senha<input value={password} onChange={e=>setPassword(e.target.value)} type="password" autoComplete="new-password" minLength={8} required/></label><label>Confirmar nova senha<input value={confirmation} onChange={e=>setConfirmation(e.target.value)} type="password" autoComplete="new-password" minLength={8} required/></label><button className="primary full" disabled={busy}>{busy?'Salvando…':'Definir senha'} <ArrowRight size={18}/></button></form>{notice&&<div className="notice"><AlertCircle size={16}/>{notice}</div>}<div className="prototype-note"><ShieldCheck size={17}/><span>O link é temporário e só pode ser utilizado dentro do prazo de validade.</span></div></section></main>
+}
+
 const navigation = [
   { id:'dashboard' as Page,label:'Visão geral',icon:LayoutDashboard },{ id:'clients' as Page,label:'Clientes',icon:Building2 },{ id:'agenda' as Page,label:'Agenda',icon:CalendarDays },{ id:'visits' as Page,label:'Histórico de visitas',icon:History },{ id:'admin' as Page,label:'Usuários e alçadas',icon:UsersRound },
 ]
@@ -98,12 +118,14 @@ function VisitModal({clients,client,onClose,demoMode,onSaved}: {clients:Client[]
 function App() {
   const [theme,setTheme]=useState<Theme>(()=>localStorage.getItem('brmobility-theme')==='light'?'light':'dark')
   const [logged,setLogged]=useState(false),[authReady,setAuthReady]=useState(!supabaseConfigured),[demoMode,setDemoMode]=useState(true),[page,setPage]=useState<Page>('dashboard'),[menuOpen,setMenuOpen]=useState(false),[selectedClient,setSelectedClient]=useState<Client|null>(null),[visitOpen,setVisitOpen]=useState(false)
+  const [passwordRecovery,setPasswordRecovery]=useState(()=>/type=(recovery|invite)/.test(`${window.location.hash}${window.location.search}`))
   const [clients,setClients]=useState<Client[]>(demoClients),[visits,setVisits]=useState<Visit[]>(demoVisits)
-  useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>{if(data.session){setDemoMode(false);setLogged(true)}setAuthReady(true)});const {data}=supabase.auth.onAuthStateChange((_event,session)=>{setLogged(Boolean(session));if(session)setDemoMode(false)});return()=>data.subscription.unsubscribe()},[])
+  useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>{if(data.session){setDemoMode(false);setLogged(true)}setAuthReady(true)});const {data}=supabase.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);setLogged(Boolean(session));if(session)setDemoMode(false)});return()=>data.subscription.unsubscribe()},[])
   useEffect(()=>{ if(logged&&!demoMode) fetchWorkspaceData().then(data=>{setClients(data.clients);setVisits(data.visits)}).catch(()=>{setClients([]);setVisits([])}) },[logged,demoMode])
   const titles=useMemo(()=>({dashboard:'Visão geral',clients:'Carteira de clientes',agenda:'Agenda comercial',visits:'Histórico de visitas',admin:'Administração'}),[])
   function toggleTheme(){setTheme(current=>{const next=current==='dark'?'light':'dark';localStorage.setItem('brmobility-theme',next);return next})}
   if(!authReady)return <main className={`login-shell theme-${theme}`}><section className="login-card loading-card"><Logo theme={theme}/><p>Preparando ambiente seguro…</p></section></main>
+  if(passwordRecovery)return <SetPassword theme={theme} onTheme={toggleTheme} onComplete={()=>{setPasswordRecovery(false);setDemoMode(false);setLogged(true)}}/>
   if(!logged)return <Login theme={theme} onTheme={toggleTheme} onEnter={()=>{setDemoMode(false);setLogged(true)}} onDemo={()=>{setDemoMode(true);setClients(demoClients);setVisits(demoVisits);setLogged(true)}}/>
   let content:React.ReactNode
   if(selectedClient)content=<ClientProfile client={selectedClient} visits={visits} demoMode={demoMode} onBack={()=>setSelectedClient(null)} onRegister={()=>setVisitOpen(true)} onContactSaved={contact=>{setClients(current=>current.map(c=>c.id===selectedClient.id?{...c,contact}:c));setSelectedClient({...selectedClient,contact})}}/>
