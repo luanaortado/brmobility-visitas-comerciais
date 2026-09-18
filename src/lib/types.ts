@@ -1,5 +1,29 @@
 export type Relationship = 'Excelente' | 'Sensível' | 'Crítico'
 export type Financial = 'Adimplente' | 'Inadimplência Moderada' | 'Inadimplente Crítico'
+export type VisitStatus = 'Realizada' | 'Programada' | 'Atrasada' | 'Cancelada' | 'Reagendada'
+export type VisitMotive = 'Relacionamento' | 'Acompanhamento operacional' | 'Reclamação' | 'Renovação' | 'Expansão/Nova oportunidade' | 'Treinamento' | 'Outro'
+
+export interface Contact {
+  id?: string
+  name: string | null
+  role: string | null
+  phone: string | null
+  email: string | null
+  isPrimary?: boolean
+  active?: boolean
+}
+
+export interface TimelineEvent {
+  id: string
+  clientId: string
+  event: string
+  field?: string
+  oldValue?: string
+  newValue?: string
+  actor: string
+  source: string
+  occurredAt: string
+}
 
 export interface Client {
   id: string
@@ -18,6 +42,7 @@ export interface Client {
   accountManager: string
   relationship: Relationship
   financial: Financial
+  lastFleetChange?: string | null
   ticketReportUrl: string
   trelloUrl: string | null
   sla: string
@@ -25,9 +50,13 @@ export interface Client {
   logisticsComplexity: string
   training: string
   lastContact: string | null
+  lastVisit?: string | null
+  nextVisit?: string | null
   address: string | null
   managementNote?: string
-  contact: { name: string | null; role: string | null; phone: string | null; email: string | null }
+  contact: Contact
+  contacts?: Contact[]
+  timeline?: TimelineEvent[]
 }
 
 export interface Visit {
@@ -36,7 +65,7 @@ export interface Visit {
   date: string
   time: string
   accountManager: string
-  status: 'Realizada' | 'Programada' | 'Atrasada'
+  status: VisitStatus
   receivedBy: string
   receivedByRole: 'Gestor' | 'Coordenador' | 'Supervisor'
   relationship: Relationship
@@ -45,4 +74,23 @@ export interface Visit {
   complaint?: string
   notes: string
   nextVisitDate?: string
+  motive?: VisitMotive
+  opportunityIdentified?: boolean
+  opportunityDescription?: string
+}
+
+export interface CurrentUser {
+  id: string
+  fullName: string
+  role: 'admin' | 'manager' | 'supervisor' | 'representative'
+  active: boolean
+  permissions: {
+    viewFinancial: boolean
+    editFinancial: boolean
+    viewContractValue: boolean
+    editProfile: boolean
+    editContacts: boolean
+    recordVisits: boolean
+    manageUsers: boolean
+  }
 }
