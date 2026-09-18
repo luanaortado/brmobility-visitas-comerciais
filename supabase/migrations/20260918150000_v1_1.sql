@@ -3,8 +3,6 @@ do $$ begin
   create type public.visit_motive as enum ('Relacionamento','Acompanhamento operacional','Reclamação','Renovação','Expansão/Nova oportunidade','Treinamento','Outro');
 exception when duplicate_object then null; end $$;
 
-alter type public.client_scope_type add value if not exists 'administrator';
-
 alter table public.clients
   add column if not exists permanent_id uuid not null default gen_random_uuid(),
   add column if not exists sync_updated_at timestamptz not null default now(),
