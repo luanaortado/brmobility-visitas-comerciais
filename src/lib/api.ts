@@ -53,3 +53,25 @@ export async function createVisit(input:{clientId:string;visitDate:string;visitT
   const {error}=await supabase.from('visits').insert({client_id:input.clientId,representative_id:user.id,visit_date:input.visitDate,visit_time:input.visitTime||null,status:'Realizada',received_by:input.receivedBy,received_by_role:input.receivedByRole,relationship:input.relationship,viewed_ticket_report:input.viewedTicketReport,has_complaint:input.hasComplaint,complaint_description:input.hasComplaint?input.complaintDescription:null,topics_and_solutions:input.topicsAndSolutions,next_visit_date:input.nextVisitDate||null,original_representative_name:profile?.full_name??user.email??'Usuário'})
   if(error) throw error
 }
+
+export async function scheduleVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;relationship:string;agenda:string}) {
+  if(!supabase) throw new Error('Ambiente seguro indisponível.')
+  const {data:{user}}=await supabase.auth.getUser()
+  if(!user) throw new Error('Sessão expirada.')
+  const {data:profile}=await supabase.from('profiles').select('full_name').eq('id',user.id).single()
+  const {error}=await supabase.from('visits').insert({
+    client_id:input.clientId,
+    representative_id:user.id,
+    visit_date:input.visitDate,
+    visit_time:input.visitTime||null,
+    status:'Programada',
+    received_by:input.receivedBy,
+    received_by_role:'Gestor',
+    relationship:input.relationship,
+    viewed_ticket_report:false,
+    has_complaint:false,
+    topics_and_solutions:input.agenda.trim()||'Sem pauta informada',
+    original_representative_name:profile?.full_name??user.email??'Usuário',
+  })
+  if(error) throw error
+}
