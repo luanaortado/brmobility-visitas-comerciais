@@ -26,6 +26,7 @@ export interface Client {
   training: string
   lastContact: string | null
   address: string | null
+  managementNote?: string
   contact: { name: string | null; role: string | null; phone: string | null; email: string | null }
 }
 

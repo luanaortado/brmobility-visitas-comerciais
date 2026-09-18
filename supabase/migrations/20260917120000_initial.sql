@@ -67,6 +67,15 @@ create index clients_state_idx on public.clients(state);
 create index clients_manager_idx on public.clients(current_account_manager);
 create index clients_attention_idx on public.clients(relationship, financial_status);
 
+create table public.client_notes (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null unique references public.clients(id) on delete cascade,
+  note text not null default '',
+  updated_by uuid not null references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- Time-bounded assignments preserve ownership history when a portfolio changes.
 create table public.client_assignments (
   id uuid primary key default gen_random_uuid(),
@@ -192,6 +201,7 @@ begin
 end $$;
 
 create trigger audit_clients after insert or update or delete on public.clients for each row execute function public.audit_changes();
+create trigger audit_client_notes after insert or update or delete on public.client_notes for each row execute function public.audit_changes();
 create trigger audit_visits after insert or update or delete on public.visits for each row execute function public.audit_changes();
 create trigger audit_assignments after insert or update or delete on public.client_assignments for each row execute function public.audit_changes();
 create trigger audit_scopes after insert or update or delete on public.user_scopes for each row execute function public.audit_changes();
@@ -212,6 +222,7 @@ create trigger apply_visit_effects after insert on public.visits for each row wh
 
 alter table public.profiles enable row level security;
 alter table public.clients enable row level security;
+alter table public.client_notes enable row level security;
 alter table public.client_assignments enable row level security;
 alter table public.user_scopes enable row level security;
 alter table public.visits enable row level security;
@@ -223,6 +234,9 @@ create policy clients_scoped_select on public.clients for select using (public.c
 create policy clients_admin_insert on public.clients for insert with check (public.is_admin_or_manager());
 create policy clients_admin_update on public.clients for update using (public.is_admin_or_manager()) with check (public.is_admin_or_manager());
 create policy clients_contact_update on public.clients for update using (public.can_edit_client_contact(clients)) with check (public.can_edit_client_contact(clients));
+create policy client_notes_scoped_select on public.client_notes for select using (public.can_view_client((select c from public.clients c where c.id=client_id)));
+create policy client_notes_scoped_insert on public.client_notes for insert with check (updated_by=auth.uid() and public.can_view_client((select c from public.clients c where c.id=client_id)));
+create policy client_notes_scoped_update on public.client_notes for update using (public.can_view_client((select c from public.clients c where c.id=client_id))) with check (updated_by=auth.uid() and public.can_view_client((select c from public.clients c where c.id=client_id)));
 create policy assignments_scoped_select on public.client_assignments for select using (profile_id=auth.uid() or public.is_admin_or_manager());
 create policy assignments_admin_write on public.client_assignments for all using (public.is_admin_or_manager()) with check (public.is_admin_or_manager());
 create policy scopes_self_select on public.user_scopes for select using (profile_id=auth.uid() or public.is_admin_or_manager());
@@ -235,6 +249,7 @@ create policy audit_scoped_select on public.audit_log for select using (public.i
 revoke update on public.clients from authenticated;
 grant select on public.clients to authenticated;
 grant update(primary_contact_name,primary_contact_role,primary_contact_phone,primary_contact_email,sheet_sync_status,sheet_synced_at,updated_at) on public.clients to authenticated;
+grant select,insert,update on public.client_notes to authenticated;
 grant select,insert,update on public.visits to authenticated;
 grant select on public.profiles,public.client_assignments,public.user_scopes,public.audit_log,public.regions to authenticated;
 
