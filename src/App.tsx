@@ -152,7 +152,7 @@ function App() {
   const [currentUser,setCurrentUser]=useState<CurrentUser|null>(null)
   const [loadError,setLoadError]=useState('')
   useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>{if(data.session){setDemoMode(false);setLogged(true)}setAuthReady(true)});const {data}=supabase.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);setLogged(Boolean(session));if(session)setDemoMode(false)});return()=>data.subscription.unsubscribe()},[])
-  useEffect(()=>{ if(logged&&!demoMode) fetchWorkspaceData().then(data=>{setClients(data.clients);setVisits(data.visits);setCurrentUser(data.currentUser);setLoadError('')}).catch(error=>{setClients([]);setVisits([]);setLoadError(error instanceof Error?error.message:'Não foi possível carregar os dados.')}) },[logged,demoMode])
+  useEffect(()=>{ if(logged&&!demoMode) fetchWorkspaceData().then(data=>{setClients(data.clients);setVisits(data.visits);setCurrentUser(data.currentUser);setLoadError('')}).catch(()=>{setClients([]);setVisits([]);setLoadError('Não foi possível carregar os dados.')}) },[logged,demoMode])
   const titles=useMemo(()=>({dashboard:'Visão geral',clients:'Carteira de clientes',agenda:'Agenda comercial',visits:'Histórico de visitas',admin:'Administração'}),[])
   function toggleTheme(){setTheme(current=>{const next=current==='dark'?'light':'dark';localStorage.setItem('brmobility-theme',next);return next})}
   if(!authReady)return <main className={`login-shell theme-${theme}`}><section className="login-card loading-card"><Logo theme={theme}/><p>Preparando ambiente seguro…</p></section></main>
