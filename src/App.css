@@ -28,6 +28,7 @@
 .theme-dark .track{background:rgba(255,255,255,.055)}.theme-dark .legend>div{border-color:var(--line)}
 .mini-agenda>button{width:100%;display:grid;grid-template-columns:38px 8px 1fr auto;gap:11px;align-items:center;border:0;border-top:1px solid var(--line);padding:11px 0;background:transparent;color:inherit;text-align:left}.mini-agenda>button:hover,.agenda-item:hover{background:rgba(66,148,167,.06)}.mini-agenda>button>span{width:7px;height:7px;background:#5bae84;border-radius:50%}.mini-agenda>button>div{display:flex;flex-direction:column}.mini-agenda>button>div b{font-size:11px}.mini-agenda>button>div small{font-size:9px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:4px}.agenda-item{width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;color:inherit;text-align:left}.calendar-event small{line-height:1.35}
 .agenda-list .agenda-item>.pill{width:auto;min-width:max-content;justify-self:end;white-space:nowrap}
+.agenda-list .agenda-item>.pill.programada{padding:0;background:transparent;color:#d99434;border-radius:0}
 .client-notes{padding:20px}.client-notes form{margin-top:15px}.client-notes textarea{width:100%;min-height:105px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface);color:var(--ink);outline:none;line-height:1.55}.client-notes textarea:focus{border-color:#4294a7;box-shadow:0 0 0 3px rgba(66,148,167,.1)}.client-notes form>div{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}.client-notes form small{color:var(--muted);font-size:9px}.client-notes .primary{min-height:36px}.note-saved{display:flex;align-items:center;gap:5px;color:#4fa97d;font-size:10px;font-weight:700}.theme-dark .client-notes textarea{background:#172033}
 
 /* Ajustes finos de navegação, carteira e agenda */
@@ -133,7 +134,7 @@
   .agenda-item>span{grid-column:2;grid-row:1;margin-top:5px}
   .agenda-item>div{grid-column:3;grid-row:1;min-width:0}
   .agenda-item>div b,.agenda-item>div small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .agenda-list .agenda-item>.pill{grid-column:3;grid-row:2;justify-self:start;margin-top:7px;padding:5px 9px}
+  .agenda-list .agenda-item>.pill{grid-column:3;grid-row:2;justify-self:start;margin-top:7px}
   .visit-row{grid-template-columns:1fr 1.4fr!important;padding:14px 12px}
   .visit-row>span:nth-child(n+3){display:none!important}
   .modal-backdrop{align-items:end;padding:0}
