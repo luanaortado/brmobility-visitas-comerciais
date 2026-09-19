@@ -77,6 +77,7 @@ export interface Visit {
   motive?: VisitMotive
   opportunityIdentified?: boolean
   opportunityDescription?: string
+  meetingMode?: 'Presencial' | 'Videoconferência'
 }
 
 export interface CurrentUser {

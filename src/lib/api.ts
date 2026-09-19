@@ -40,7 +40,7 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
     timeline:timeline.filter(t=>t.client_id===row.id).map((t):TimelineEvent=>({id:String(t.id),clientId:String(t.client_id),event:String(t.event_type),field:t.field_name?String(t.field_name):undefined,oldValue:t.old_value?String(t.old_value):undefined,newValue:t.new_value?String(t.new_value):undefined,actor:String(t.actor_name??'Sistema'),source:String(t.source??'app'),occurredAt:String(t.occurred_at)})),
   })})
   const visits: Visit[] = (visitResult.error ? [] : visitResult.data ?? []).map((row: Record<string, unknown>) => {
-    return { id:String(row.id),clientId:String(row.client_id),date:String(row.visit_date),time:String(row.visit_time ?? ''),accountManager:String(row.original_representative_name ?? 'Não informado'),status:row.status as Visit['status'],receivedBy:String(row.received_by),receivedByRole:row.received_by_role as Visit['receivedByRole'],relationship:row.relationship as Relationship,viewedTicketReport:Boolean(row.viewed_ticket_report),hasComplaint:Boolean(row.has_complaint),complaint:row.complaint_description ? String(row.complaint_description) : undefined,notes:String(row.topics_and_solutions ?? ''),nextVisitDate:row.next_visit_date ? String(row.next_visit_date) : undefined,motive:row.visit_motive as VisitMotive,opportunityIdentified:Boolean(row.opportunity_identified),opportunityDescription:row.opportunity_description?String(row.opportunity_description):undefined }
+    return { id:String(row.id),clientId:String(row.client_id),date:String(row.visit_date),time:String(row.visit_time ?? ''),accountManager:String(row.original_representative_name ?? 'Não informado'),status:row.status as Visit['status'],receivedBy:String(row.received_by),receivedByRole:row.received_by_role as Visit['receivedByRole'],relationship:row.relationship as Relationship,viewedTicketReport:Boolean(row.viewed_ticket_report),hasComplaint:Boolean(row.has_complaint),complaint:row.complaint_description ? String(row.complaint_description) : undefined,notes:String(row.topics_and_solutions ?? ''),nextVisitDate:row.next_visit_date ? String(row.next_visit_date) : undefined,motive:row.visit_motive as VisitMotive,opportunityIdentified:Boolean(row.opportunity_identified),opportunityDescription:row.opportunity_description?String(row.opportunity_description):undefined,meetingMode:(row.meeting_mode??'Presencial') as Visit['meetingMode'] }
   })
   const p=profileResult.data as Record<string,unknown>|null
   const role=(p?.role??'representative') as CurrentUser['role']
@@ -114,7 +114,7 @@ export async function createVisit(input:{clientId:string;visitDate:string;visitT
   if(error) throw error
 }
 
-export async function scheduleVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;relationship:string;agenda:string}) {
+export async function scheduleVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;relationship:string;agenda:string;meetingMode:'Presencial'|'Videoconferência'}) {
   if(!supabase) throw new Error('Ambiente seguro indisponível.')
   const {data:{user}}=await supabase.auth.getUser()
   if(!user) throw new Error('Sessão expirada.')
@@ -131,6 +131,8 @@ export async function scheduleVisit(input:{clientId:string;visitDate:string;visi
     viewed_ticket_report:false,
     has_complaint:false,
     topics_and_solutions:input.agenda.trim()||'Sem pauta informada',
+    meeting_mode:input.meetingMode,
+    visit_motive:'Relacionamento',
     original_representative_name:profile?.full_name??user.email??'Usuário',
   })
   if(error) throw error
