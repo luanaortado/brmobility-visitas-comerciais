@@ -44,6 +44,7 @@
 
 /* Experiência mobile */
 .mobile-bottom-nav{display:none}
+.readonly-banner{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 13px;border:1px solid rgba(66,148,167,.35);background:rgba(66,148,167,.09);color:var(--ink);border-radius:9px;font-size:10px}.readonly-banner svg{color:#4294a7;flex:none}.readonly-banner b{color:#4294a7}
 @media(max-width:800px){
   body{overscroll-behavior-y:none}
   .sidebar,.sidebar-scrim,.mobile-menu{display:none!important}
@@ -57,6 +58,7 @@
   .top-actions .icon-button{width:40px;height:40px}
   .content{padding:18px 14px calc(92px + env(safe-area-inset-bottom));max-width:680px}
   .mobile-bottom-nav{position:fixed;z-index:90;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;min-height:66px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 94%,transparent);border-top:1px solid var(--line);box-shadow:0 -8px 28px rgba(10,37,47,.1);backdrop-filter:blur(16px)}
+  .mobile-bottom-nav.four-items{grid-template-columns:repeat(4,1fr)}
   .mobile-bottom-nav button{min-width:0;min-height:54px;border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:9px;font-weight:750}
   .mobile-bottom-nav button.active{color:#2f8295}
   .mobile-bottom-nav button.active:after{content:"";position:absolute;top:0;width:30px;height:3px;border-radius:0 0 3px 3px;background:#4294a7}

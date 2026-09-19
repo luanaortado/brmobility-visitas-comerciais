@@ -83,7 +83,7 @@ export interface Visit {
 export interface CurrentUser {
   id: string
   fullName: string
-  role: 'admin' | 'manager' | 'supervisor' | 'representative'
+  role: 'admin' | 'manager' | 'supervisor' | 'representative' | 'viewer'
   active: boolean
   permissions: {
     viewFinancial: boolean
