@@ -8,7 +8,7 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
   const {data:{user}}=await supabase.auth.getUser()
   const [clientResult, visitResult, profileResult, contactResult, timelineResult, noteResult] = await Promise.all([
     supabase.rpc('get_visible_clients'),
-    supabase.from('visits').select('*, profiles!visits_representative_id_fkey(full_name)').order('visit_date', { ascending: false }),
+    supabase.from('visits').select('*').order('visit_date', { ascending: false }),
     user ? supabase.from('profiles').select('*').eq('id',user.id).maybeSingle() : Promise.resolve({data:null,error:null}),
     supabase.from('client_contacts').select('*').eq('active',true).order('is_primary',{ascending:false}),
     supabase.from('client_timeline').select('*').order('occurred_at',{ascending:false}).limit(1000),
@@ -41,8 +41,7 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
     timeline:timeline.filter(t=>t.client_id===row.id).map((t):TimelineEvent=>({id:String(t.id),clientId:String(t.client_id),event:String(t.event_type),field:t.field_name?String(t.field_name):undefined,oldValue:t.old_value?String(t.old_value):undefined,newValue:t.new_value?String(t.new_value):undefined,actor:String(t.actor_name??'Sistema'),source:String(t.source??'app'),occurredAt:String(t.occurred_at)})),
   })})
   const visits: Visit[] = (visitResult.data ?? []).map((row: Record<string, unknown>) => {
-    const profile = row.profiles as { full_name?: string } | null
-    return { id:String(row.id),clientId:String(row.client_id),date:String(row.visit_date),time:String(row.visit_time ?? ''),accountManager:profile?.full_name ?? String(row.original_representative_name),status:row.status as Visit['status'],receivedBy:String(row.received_by),receivedByRole:row.received_by_role as Visit['receivedByRole'],relationship:row.relationship as Relationship,viewedTicketReport:Boolean(row.viewed_ticket_report),hasComplaint:Boolean(row.has_complaint),complaint:row.complaint_description ? String(row.complaint_description) : undefined,notes:String(row.topics_and_solutions ?? ''),nextVisitDate:row.next_visit_date ? String(row.next_visit_date) : undefined,motive:row.visit_motive as VisitMotive,opportunityIdentified:Boolean(row.opportunity_identified),opportunityDescription:row.opportunity_description?String(row.opportunity_description):undefined }
+    return { id:String(row.id),clientId:String(row.client_id),date:String(row.visit_date),time:String(row.visit_time ?? ''),accountManager:String(row.original_representative_name ?? 'Não informado'),status:row.status as Visit['status'],receivedBy:String(row.received_by),receivedByRole:row.received_by_role as Visit['receivedByRole'],relationship:row.relationship as Relationship,viewedTicketReport:Boolean(row.viewed_ticket_report),hasComplaint:Boolean(row.has_complaint),complaint:row.complaint_description ? String(row.complaint_description) : undefined,notes:String(row.topics_and_solutions ?? ''),nextVisitDate:row.next_visit_date ? String(row.next_visit_date) : undefined,motive:row.visit_motive as VisitMotive,opportunityIdentified:Boolean(row.opportunity_identified),opportunityDescription:row.opportunity_description?String(row.opportunity_description):undefined }
   })
   const p=profileResult.data as Record<string,unknown>|null
   const role=(p?.role??'representative') as CurrentUser['role']

@@ -14,7 +14,7 @@ Deno.serve(async req=>{
     const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}})
     const {data:client,error}=await admin.from('clients').select('*').eq('id',clientId).single();if(error||!client)throw new Error('Cliente não encontrado.')
     const response=await fetch(Deno.env.get('APPS_SCRIPT_URL')!,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      secret:Deno.env.get('SHEET_SYNC_SECRET'),action:'syncClient',sheetName:Deno.env.get('GOOGLE_SHEET_TAB')??'3 Perfil do Cliente',row:client.source_row,
+      secret:Deno.env.get('SHEET_SYNC_SECRET'),action:'syncClient',sheetName:Deno.env.get('GOOGLE_SHEET_TAB')??'Perfil do Cliente',row:client.source_row,
       permanentId:client.permanent_id,name:client.primary_contact_name,role:client.primary_contact_role,phone:client.primary_contact_phone,
       email:client.primary_contact_email,relationship:client.relationship,financial:client.financial_status,training:client.training,
       manager:client.current_account_manager,fleet:client.last_fleet_change
