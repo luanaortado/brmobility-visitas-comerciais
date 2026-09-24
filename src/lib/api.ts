@@ -9,7 +9,7 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
   const clientResult=await supabase.rpc('get_visible_clients')
   if (clientResult.error) throw clientResult.error
   const [visitResult, profileResult, contactResult, timelineResult, noteResult] = await Promise.all([
-    supabase.from('visits').select('*').order('visit_date', { ascending: false }),
+    supabase.from('visits').select('*').is('archived_at',null).order('visit_date', { ascending: false }),
     user ? supabase.from('profiles').select('*').eq('id',user.id).maybeSingle() : Promise.resolve({data:null,error:null}),
     supabase.from('client_contacts').select('*').eq('active',true).order('is_primary',{ascending:false}),
     supabase.from('client_timeline').select('*').order('occurred_at',{ascending:false}).limit(1000),
@@ -142,4 +142,17 @@ export async function scheduleVisit(input:{clientId:string;visitDate:string;visi
     original_representative_name:profile?.full_name??user.email??'Usuário',
   })
   if(error) throw error
+}
+
+export async function archiveVisit(visitId:string) {
+  if(!supabase) throw new Error('Ambiente seguro indisponível.')
+  const {data,error}=await supabase.from('visits')
+    .update({archived_at:new Date().toISOString()})
+    .eq('id',visitId)
+    .in('status',['Programada','Reagendada','Atrasada'])
+    .is('archived_at',null)
+    .select('id')
+    .maybeSingle()
+  if(error) throw error
+  if(!data) throw new Error('Esta visita não pode mais ser excluída da agenda.')
 }
