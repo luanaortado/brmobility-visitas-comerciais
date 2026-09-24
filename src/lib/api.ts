@@ -105,12 +105,18 @@ export async function updateClientManagementProfile(clientId:string,input:{relat
   await supabase.functions.invoke('sync-client',{body:{clientId}})
 }
 
-export async function createVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;receivedByRole:string;relationship:string;viewedTicketReport:boolean;hasComplaint:boolean;complaintDescription:string;topicsAndSolutions:string;nextVisitDate:string;motive?:VisitMotive;opportunityIdentified?:boolean;opportunityDescription?:string}) {
+export async function createVisit(input:{scheduledVisitId?:string;clientId:string;visitDate:string;visitTime:string;receivedBy:string;receivedByRole:string;relationship:string;viewedTicketReport:boolean;hasComplaint:boolean;complaintDescription:string;topicsAndSolutions:string;nextVisitDate:string;motive?:VisitMotive;opportunityIdentified?:boolean;opportunityDescription?:string}) {
   if(!supabase) throw new Error('Ambiente seguro indisponível.')
   const {data:{user}}=await supabase.auth.getUser()
   if(!user) throw new Error('Sessão expirada.')
   const {data:profile}=await supabase.from('profiles').select('full_name').eq('id',user.id).single()
-  const {error}=await supabase.from('visits').insert({client_id:input.clientId,representative_id:user.id,visit_date:input.visitDate,visit_time:input.visitTime||null,status:'Realizada',received_by:input.receivedBy,received_by_role:input.receivedByRole,relationship:input.relationship,viewed_ticket_report:input.viewedTicketReport,has_complaint:input.hasComplaint,complaint_description:input.hasComplaint?input.complaintDescription:null,topics_and_solutions:input.topicsAndSolutions,next_visit_date:input.nextVisitDate||null,visit_motive:input.motive??'Relacionamento',opportunity_identified:Boolean(input.opportunityIdentified),opportunity_description:input.opportunityIdentified?input.opportunityDescription:null,original_representative_name:profile?.full_name??user.email??'Usuário'})
+  let clientId=input.clientId
+  if(!clientId&&input.scheduledVisitId){const {data:scheduled,error:scheduledError}=await supabase.from('visits').select('client_id').eq('id',input.scheduledVisitId).single();if(scheduledError)throw scheduledError;clientId=String(scheduled.client_id)}
+  const payload={client_id:clientId,representative_id:user.id,visit_date:input.visitDate,visit_time:input.visitTime||null,status:'Realizada',received_by:input.receivedBy,received_by_role:input.receivedByRole,relationship:input.relationship,viewed_ticket_report:input.viewedTicketReport,has_complaint:input.hasComplaint,complaint_description:input.hasComplaint?input.complaintDescription:null,topics_and_solutions:input.topicsAndSolutions,next_visit_date:input.nextVisitDate||null,visit_motive:input.motive??'Relacionamento',opportunity_identified:Boolean(input.opportunityIdentified),opportunity_description:input.opportunityIdentified?input.opportunityDescription:null,original_representative_name:profile?.full_name??user.email??'Usuário'}
+  const result=input.scheduledVisitId
+    ?await supabase.from('visits').update(payload).eq('id',input.scheduledVisitId).in('status',['Programada','Reagendada','Atrasada']).select('id').single()
+    :await supabase.from('visits').insert(payload)
+  const {error}=result
   if(error) throw error
 }
 
