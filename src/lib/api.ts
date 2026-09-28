@@ -1,6 +1,20 @@
 import { supabase } from './supabase'
 import type { Client, CurrentUser, Financial, Relationship, TimelineEvent, Visit, VisitMotive } from './types'
 
+export interface UserAccessRecord {
+  id:string
+  fullName:string
+  email:string
+  role:CurrentUser['role']
+  active:boolean
+  viewFinancial:boolean
+  editFinancial:boolean
+  viewContractValue:boolean
+  editProfile:boolean
+  editContacts:boolean
+  recordVisits:boolean
+}
+
 const displayDate = (value: string | null) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`)) : 'Não informado'
 
 export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits: Visit[]; currentUser: CurrentUser | null }> {
@@ -89,6 +103,25 @@ export async function inviteUser(input:{email:string;fullName:string;role:string
   if(!supabase)throw new Error('Ambiente seguro indisponível.')
   const {data,error}=await supabase.functions.invoke('invite-user',{body:input})
   if(error||!data?.ok)throw error??new Error(data?.error??'Não foi possível enviar o convite.')
+  return String(data.userId)
+}
+
+export async function fetchUserAccess():Promise<UserAccessRecord[]>{
+  if(!supabase) return []
+  const {data,error}=await supabase.from('profiles').select('id,full_name,email,role,active,can_view_financial,can_edit_financial,can_view_contract_value,can_edit_profile,can_edit_contacts,can_record_visits').order('full_name')
+  if(error) throw error
+  return (data??[]).map(row=>({id:String(row.id),fullName:String(row.full_name),email:String(row.email),role:row.role as CurrentUser['role'],active:Boolean(row.active),viewFinancial:Boolean(row.can_view_financial),editFinancial:Boolean(row.can_edit_financial),viewContractValue:Boolean(row.can_view_contract_value),editProfile:Boolean(row.can_edit_profile),editContacts:Boolean(row.can_edit_contacts),recordVisits:Boolean(row.can_record_visits)}))
+}
+
+export async function updateUserAccess(user:UserAccessRecord){
+  if(!supabase) throw new Error('Ambiente seguro indisponível.')
+  const {error}=await supabase.rpc('admin_update_user_access',{
+    target_profile_id:user.id,new_role:user.role,new_active:user.active,
+    new_can_view_financial:user.viewFinancial,new_can_edit_financial:user.editFinancial,
+    new_can_view_contract_value:user.viewContractValue,new_can_edit_profile:user.editProfile,
+    new_can_edit_contacts:user.editContacts,new_can_record_visits:user.recordVisits,
+  })
+  if(error) throw error
 }
 
 export async function updateClientManagementProfile(clientId:string,input:{relationship:Relationship;financial:Financial;training:'Sim'|'Não';accountManager:string;lastFleetChange:string}) {
