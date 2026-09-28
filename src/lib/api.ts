@@ -151,6 +151,8 @@ export async function createVisit(input:{scheduledVisitId?:string;clientId:strin
     :await supabase.from('visits').insert(payload)
   const {error}=result
   if(error) throw error
+  const {error:syncError}=await supabase.functions.invoke('sync-client',{body:{clientId}})
+  if(syncError) console.error('A visita foi salva, mas a planilha ficou pendente de sincronização.',syncError)
 }
 
 export async function scheduleVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;relationship:string;agenda:string;meetingMode:'Presencial'|'Videoconferência'}) {

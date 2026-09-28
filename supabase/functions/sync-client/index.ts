@@ -17,7 +17,7 @@ Deno.serve(async req=>{
       secret:Deno.env.get('SHEET_SYNC_SECRET'),action:'syncClient',sheetName:Deno.env.get('GOOGLE_SHEET_TAB')??'Perfil do Cliente',row:client.source_row,
       permanentId:client.permanent_id,name:client.primary_contact_name,role:client.primary_contact_role,phone:client.primary_contact_phone,
       email:client.primary_contact_email,relationship:client.relationship,financial:client.financial_status,training:client.training,
-      manager:client.current_account_manager,fleet:client.last_fleet_change
+      manager:client.current_account_manager,fleet:client.last_fleet_change,lastContact:client.legacy_last_contact
     })})
     const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error??`Google Sheets recusou a sincronização (${response.status}).`)
     const now=new Date().toISOString()
