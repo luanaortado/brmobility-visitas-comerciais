@@ -155,6 +155,29 @@ export async function createVisit(input:{scheduledVisitId?:string;clientId:strin
   if(syncError) console.error('A visita foi salva, mas a planilha ficou pendente de sincronização.',syncError)
 }
 
+export async function updateCompletedVisit(visitId:string,input:{visitDate:string;visitTime:string;receivedBy:string;receivedByRole:string;relationship:string;viewedTicketReport:boolean;hasComplaint:boolean;complaintDescription:string;topicsAndSolutions:string;nextVisitDate:string;motive?:VisitMotive;opportunityIdentified?:boolean;opportunityDescription?:string}) {
+  if(!supabase) throw new Error('Ambiente seguro indisponível.')
+  const {data,error}=await supabase.from('visits').update({
+    visit_date:input.visitDate,
+    visit_time:input.visitTime||null,
+    received_by:input.receivedBy,
+    received_by_role:input.receivedByRole,
+    relationship:input.relationship,
+    viewed_ticket_report:input.viewedTicketReport,
+    has_complaint:input.hasComplaint,
+    complaint_description:input.hasComplaint?input.complaintDescription:null,
+    topics_and_solutions:input.topicsAndSolutions,
+    next_visit_date:input.nextVisitDate||null,
+    visit_motive:input.motive??'Relacionamento',
+    opportunity_identified:Boolean(input.opportunityIdentified),
+    opportunity_description:input.opportunityIdentified?input.opportunityDescription:null,
+    updated_at:new Date().toISOString(),
+  }).eq('id',visitId).eq('status','Realizada').select('client_id').single()
+  if(error) throw error
+  const {error:syncError}=await supabase.functions.invoke('sync-client',{body:{clientId:String(data.client_id)}})
+  if(syncError) console.error('A visita/reunião foi atualizada, mas a planilha ficou pendente de sincronização.',syncError)
+}
+
 export async function scheduleVisit(input:{clientId:string;visitDate:string;visitTime:string;receivedBy:string;relationship:string;agenda:string;meetingMode:'Presencial'|'Videoconferência'}) {
   if(!supabase) throw new Error('Ambiente seguro indisponível.')
   const {data:{user}}=await supabase.auth.getUser()
