@@ -60,6 +60,7 @@ export interface Client {
 }
 
 export interface Visit {
+  representativeId?: string
   id: string
   clientId: string
   date: string

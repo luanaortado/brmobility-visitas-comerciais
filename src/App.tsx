@@ -7,10 +7,11 @@ import { archiveVisit, createVisit, fetchWorkspaceData, saveClientNote, schedule
 import { supabase, supabaseConfigured } from './lib/supabase'
 import { formatPartnershipStart } from './lib/format'
 import { AdminV11, ClientProfileV11, DashboardV11, VisitModalV11 } from './components/V11'
+import { RegionalClosing } from './components/RegionalClosing'
 import './App.css'
 import './v11.css'
 
-type Page = 'dashboard' | 'clients' | 'agenda' | 'visits' | 'admin'
+type Page = 'dashboard' | 'clients' | 'agenda' | 'visits' | 'admin' | 'regional'
 type Theme = 'dark' | 'light'
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
@@ -64,7 +65,7 @@ function SetPassword({ onComplete,theme,onTheme }: {onComplete:()=>void;theme:Th
 }
 
 const navigation = [
-  { id:'dashboard' as Page,label:'Visão Geral',icon:LayoutDashboard },{ id:'clients' as Page,label:'Clientes',icon:Building2 },{ id:'agenda' as Page,label:'Agenda',icon:CalendarDays },{ id:'visits' as Page,label:'Histórico de Visitas/Reuniões',icon:History },{ id:'admin' as Page,label:'Usuários e Alçadas',icon:UsersRound },
+  { id:'dashboard' as Page,label:'Visão Geral',icon:LayoutDashboard },{ id:'clients' as Page,label:'Clientes',icon:Building2 },{ id:'agenda' as Page,label:'Agenda',icon:CalendarDays },{ id:'visits' as Page,label:'Histórico de Visitas/Reuniões',icon:History },{ id:'regional' as Page,label:'Fechamento regionais',icon:CircleDollarSign },{ id:'admin' as Page,label:'Usuários e Alçadas',icon:UsersRound },
 ]
 function Sidebar({ page,onPage,open,close,theme,demoMode,user }: { page:Page;onPage:(p:Page)=>void;open:boolean;close:()=>void;theme:Theme;demoMode:boolean;user:CurrentUser|null }) {
   const items=navigation.filter(item=>item.id!=='admin'||demoMode||user?.permissions.manageUsers)
@@ -72,7 +73,7 @@ function Sidebar({ page,onPage,open,close,theme,demoMode,user }: { page:Page;onP
   return <>{open&&<button className="sidebar-scrim" onClick={close}/>}<aside className={`sidebar ${open?'mobile-open':''}`}><Logo theme={theme}/><nav><small>MENU PRINCIPAL</small>{items.map(item=><button key={item.id} className={page===item.id?'active':''} onClick={()=>{onPage(item.id);close()}}><item.icon size={18}/><span>{item.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="demo-badge"><span>{user?.role==='viewer'?'SOMENTE LEITURA':demoMode?'DEMONSTRAÇÃO':'AMBIENTE SEGURO'}</span><small>{demoMode?'Dados ilustrativos':'Dados da carteira'}</small></div><div className="profile-mini"><div className="avatar">{initials}</div><div><b>{name}</b><small>{role}</small></div><MoreHorizontal size={18}/></div></div></aside></>
 }
 function MobileNav({ page,onPage,canManageUsers }: {page:Page;onPage:(p:Page)=>void;canManageUsers:boolean}) {
-  const labels:Record<Page,string>={dashboard:'Início',clients:'Clientes',agenda:'Agenda',visits:'Histórico',admin:'Acessos'}
+  const labels:Record<Page,string>={dashboard:'Início',clients:'Clientes',agenda:'Agenda',visits:'Histórico',admin:'Acessos',regional:'Fechamento'}
   return <nav className={`mobile-bottom-nav ${canManageUsers?'':'four-items'}`} aria-label="Navegação principal">{navigation.filter(item=>item.id!=='admin'||canManageUsers).map(item=><button key={item.id} className={page===item.id?'active':''} onClick={()=>onPage(item.id)} aria-current={page===item.id?'page':undefined}><item.icon size={20}/><span>{labels[item.id]}</span></button>)}</nav>
 }
 function Topbar({ title,onMenu,onLogout,theme,onTheme,visits }: {title:string;onMenu:()=>void;onLogout:()=>void;theme:Theme;onTheme:()=>void;visits:Visit[]}) {
@@ -195,7 +196,7 @@ function App() {
   useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>{if(data.session){setDemoMode(false);setLogged(true)}setAuthReady(true)});const {data}=supabase.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);setLogged(Boolean(session));if(session)setDemoMode(false)});return()=>data.subscription.unsubscribe()},[])
   useEffect(()=>{ if(logged&&!demoMode) fetchWorkspaceData().then(data=>{setClients(data.clients);setVisits(data.visits);setCurrentUser(data.currentUser);setLoadError('')}).catch(()=>{setClients([]);setVisits([]);setLoadError('Não foi possível carregar os dados.')}) },[logged,demoMode])
   useEffect(()=>{if(currentUser&&!currentUser.permissions.manageUsers&&page==='admin')setPage('dashboard')},[currentUser,page])
-  const titles=useMemo(()=>({dashboard:'Visão Geral',clients:'Carteira de Clientes',agenda:'Agenda Comercial',visits:'Histórico de Visitas/Reuniões',admin:'Administração'}),[])
+  const titles=useMemo(()=>({dashboard:'Visão Geral',clients:'Carteira de Clientes',agenda:'Agenda Comercial',visits:'Histórico de Visitas/Reuniões',admin:'Administração',regional:'Fechamento regionais'}),[])
   function toggleTheme(){setTheme(current=>{const next=current==='dark'?'light':'dark';localStorage.setItem('brmobility-theme',next);return next})}
   if(!authReady)return <main className={`login-shell theme-${theme}`}><section className="login-card loading-card"><Logo theme={theme}/><p>Preparando ambiente seguro…</p></section></main>
   if(passwordRecovery)return <SetPassword theme={theme} onTheme={toggleTheme} onComplete={()=>{setPasswordRecovery(false);setDemoMode(false);setLogged(true)}}/>
@@ -207,6 +208,7 @@ function App() {
   else if(page==='clients')content=<ClientsPage clients={clients} onOpen={setSelectedClient}/>
   else if(page==='agenda')content=<AgendaPage visits={visits} clients={clients} canSchedule={canRecord} onSchedule={()=>setScheduleOpen(true)} onClient={setSelectedClient} onRegister={visit=>{setVisitToComplete(visit);setVisitOpen(true)}} onDelete={async visit=>{if(!demoMode)await archiveVisit(visit.id);setVisits(current=>current.filter(item=>item.id!==visit.id))}}/>
   else if(page==='visits')content=<VisitsPage visits={visits} clients={clients} canEdit={canRecord} onEdit={visit=>{setVisitToEdit(visit);setVisitOpen(true)}}/>
+  else if(page==='regional')content=<RegionalClosing clients={clients} visits={visits} user={currentUser} demoMode={demoMode} onLiveAccess={()=>{setDemoMode(false);setLogged(false)}}/>
   else content=<AdminV11 demoMode={demoMode}/>
   async function logout(){if(!demoMode&&supabase)await supabase.auth.signOut();setLogged(false);setSelectedClient(null)}
   const navigate=(destination:Page)=>{setPage(destination);setSelectedClient(null);setMenuOpen(false)}
