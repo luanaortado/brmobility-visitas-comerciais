@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Client, CurrentUser, Financial, Relationship, TimelineEvent, Visit, VisitMotive } from './types'
+import type { Client, CurrentUser, Financial, ProspectingVisit, Relationship, TimelineEvent, Visit, VisitMotive } from './types'
 
 export interface UserAccessRecord {
   id:string
@@ -17,13 +17,14 @@ export interface UserAccessRecord {
 
 const displayDate = (value: string | null) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`)) : 'Não informado'
 
-export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits: Visit[]; currentUser: CurrentUser | null }> {
-  if (!supabase) return { clients: [], visits: [], currentUser: null }
+export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits: Visit[]; prospectingVisits: ProspectingVisit[]; currentUser: CurrentUser | null }> {
+  if (!supabase) return { clients: [], visits: [], prospectingVisits: [], currentUser: null }
   const {data:{user}}=await supabase.auth.getUser()
   const clientResult=await supabase.rpc('get_visible_clients')
   if (clientResult.error) throw clientResult.error
-  const [visitResult, profileResult, contactResult, timelineResult, noteResult] = await Promise.all([
+  const [visitResult, prospectingResult, profileResult, contactResult, timelineResult, noteResult] = await Promise.all([
     supabase.from('visits').select('*').is('archived_at',null).order('visit_date', { ascending: false }),
+    supabase.from('prospecting_visits').select('*').is('archived_at',null).order('visit_date', { ascending: false }),
     user ? supabase.from('profiles').select('*').eq('id',user.id).maybeSingle() : Promise.resolve({data:null,error:null}),
     supabase.from('client_contacts').select('*').eq('active',true).order('is_primary',{ascending:false}),
     supabase.from('client_timeline').select('*').order('occurred_at',{ascending:false}).limit(1000),
@@ -56,11 +57,22 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
   const visits: Visit[] = (visitResult.error ? [] : visitResult.data ?? []).map((row: Record<string, unknown>) => {
     return { representativeId:String(row.representative_id),id:String(row.id),clientId:String(row.client_id),date:String(row.visit_date),time:String(row.visit_time ?? ''),accountManager:String(row.original_representative_name ?? 'Não informado'),status:row.status as Visit['status'],receivedBy:String(row.received_by),receivedByRole:row.received_by_role as Visit['receivedByRole'],relationship:row.relationship as Relationship,viewedTicketReport:Boolean(row.viewed_ticket_report),hasComplaint:Boolean(row.has_complaint),complaint:row.complaint_description ? String(row.complaint_description) : undefined,notes:String(row.topics_and_solutions ?? ''),nextVisitDate:row.next_visit_date ? String(row.next_visit_date) : undefined,motive:row.visit_motive as VisitMotive,opportunityIdentified:Boolean(row.opportunity_identified),opportunityDescription:row.opportunity_description?String(row.opportunity_description):undefined,meetingMode:(row.meeting_mode??'Presencial') as Visit['meetingMode'] }
   })
+  const prospectingVisits:ProspectingVisit[]=(prospectingResult.error?[]:prospectingResult.data??[]).map((row:Record<string,unknown>)=>({
+    id:String(row.id),representativeId:String(row.representative_id),representativeName:String(row.representative_name),companyName:String(row.company_name),city:String(row.city),state:String(row.state),segment:String(row.segment),administratorGroup:row.administrator_group?String(row.administrator_group):undefined,contactName:String(row.contact_name),contactRole:row.contact_role?String(row.contact_role):undefined,contactPhone:row.contact_phone?String(row.contact_phone):undefined,contactEmail:row.contact_email?String(row.contact_email):undefined,date:String(row.visit_date),time:String(row.visit_time??''),meetingMode:row.meeting_mode as ProspectingVisit['meetingMode'],topics:String(row.topics),estimatedVehicles:Number(row.estimated_vehicles??0),trelloUrl:String(row.trello_url),
+  }))
   const p=profileResult.data as Record<string,unknown>|null
   const role=(p?.role??'representative') as CurrentUser['role']
   const elevated=role==='admin'||role==='manager'
   const currentUser:CurrentUser|null=p?{id:String(p.id),fullName:String(p.full_name),role,active:Boolean(p.active),permissions:{viewFinancial:elevated||Boolean(p.can_view_financial),editFinancial:elevated||Boolean(p.can_edit_financial),viewContractValue:elevated||Boolean(p.can_view_contract_value),editProfile:elevated||Boolean(p.can_edit_profile),editContacts:elevated||Boolean(p.can_edit_contacts),recordVisits:elevated||Boolean(p.can_record_visits),manageUsers:role==='admin'}}:null
-  return { clients, visits, currentUser }
+  return { clients, visits, prospectingVisits, currentUser }
+}
+
+export async function createProspectingVisit(input:Omit<ProspectingVisit,'id'|'representativeId'|'representativeName'>){
+  if(!supabase)throw new Error('Ambiente seguro indisponível.')
+  const {data,error}=await supabase.rpc('create_prospecting_visit',{details:{companyName:input.companyName,city:input.city,state:input.state,segment:input.segment,administratorGroup:input.administratorGroup??'',contactName:input.contactName,contactRole:input.contactRole??'',contactPhone:input.contactPhone??'',contactEmail:input.contactEmail??'',visitDate:input.date,visitTime:input.time,meetingMode:input.meetingMode,topics:input.topics,estimatedVehicles:input.estimatedVehicles,trelloUrl:input.trelloUrl}})
+  if(error)throw error
+  const row=data as Record<string,unknown>
+  return {id:String(row.id),representativeId:String(row.representative_id),representativeName:String(row.representative_name),companyName:String(row.company_name),city:String(row.city),state:String(row.state),segment:String(row.segment),administratorGroup:row.administrator_group?String(row.administrator_group):undefined,contactName:String(row.contact_name),contactRole:row.contact_role?String(row.contact_role):undefined,contactPhone:row.contact_phone?String(row.contact_phone):undefined,contactEmail:row.contact_email?String(row.contact_email):undefined,date:String(row.visit_date),time:String(row.visit_time??''),meetingMode:row.meeting_mode as ProspectingVisit['meetingMode'],topics:String(row.topics),estimatedVehicles:Number(row.estimated_vehicles??0),trelloUrl:String(row.trello_url)} satisfies ProspectingVisit
 }
 
 export async function saveClientNote(clientId:string,note:string) {

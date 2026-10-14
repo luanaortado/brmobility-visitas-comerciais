@@ -1,4 +1,4 @@
-import type { Client, Visit } from './types'
+import type { Client, ProspectingVisit, Visit } from './types'
 
 const report = 'https://vanessarodriguesbr.github.io/painelchamados/'
 const base = { status:'Renovado', ticketReportUrl:report, trelloUrl:null, misuseHistory:'Não', training:'Não' } as const
@@ -25,4 +25,8 @@ export const demoVisits: Visit[] = [
   {id:'v7',clientId:'c6',date:'2026-09-21',time:'09:30',accountManager:'Camila Rocha',status:'Programada',receivedBy:'A confirmar',receivedByRole:'Supervisor',relationship:'Excelente',viewedTicketReport:false,hasComplaint:false,notes:''},
   {id:'v8',clientId:'c7',date:'2026-09-10',time:'15:00',accountManager:'Júlia Alves',status:'Atrasada',receivedBy:'A confirmar',receivedByRole:'Gestor',relationship:'Crítico',viewedTicketReport:false,hasComplaint:false,notes:''},
   {id:'v9',clientId:'c4',date:'2026-09-23',time:'11:30',accountManager:'Júlia Alves',status:'Programada',receivedBy:'A confirmar',receivedByRole:'Coordenador',relationship:'Excelente',viewedTicketReport:false,hasComplaint:false,notes:''},
+]
+
+export const demoProspectingVisits: ProspectingVisit[] = [
+  {id:'p1',representativeName:'Luana Ortado',companyName:'Centro Comercial Prisma',city:'Rio de Janeiro',state:'RJ',segment:'Shopping',administratorGroup:'Grupo Demonstração',contactName:'Marina Lopes',contactRole:'Gerente de Operações',contactPhone:'(00) 90000-0010',contactEmail:'marina@example.com',date:'2026-09-14',time:'15:30',meetingMode:'Presencial',topics:'Apresentação da solução e entendimento da operação atual.',estimatedVehicles:6,trelloUrl:'https://trello.com/'},
 ]

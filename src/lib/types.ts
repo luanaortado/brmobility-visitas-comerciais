@@ -68,7 +68,7 @@ export interface Visit {
   accountManager: string
   status: VisitStatus
   receivedBy: string
-  receivedByRole: 'Gestor' | 'Coordenador' | 'Supervisor'
+  receivedByRole: 'Gestor' | 'Coordenador' | 'Supervisor' | 'Comprador'
   relationship: Relationship
   viewedTicketReport: boolean
   hasComplaint: boolean
@@ -79,6 +79,27 @@ export interface Visit {
   opportunityIdentified?: boolean
   opportunityDescription?: string
   meetingMode?: 'Presencial' | 'Videoconferência'
+}
+
+export interface ProspectingVisit {
+  id: string
+  representativeId?: string
+  representativeName: string
+  companyName: string
+  city: string
+  state: string
+  segment: string
+  administratorGroup?: string
+  contactName: string
+  contactRole?: string
+  contactPhone?: string
+  contactEmail?: string
+  date: string
+  time: string
+  meetingMode: 'Presencial' | 'Videoconferência'
+  topics: string
+  estimatedVehicles: number
+  trelloUrl: string
 }
 
 export interface CurrentUser {

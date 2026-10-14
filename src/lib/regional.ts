@@ -9,6 +9,7 @@ export const REGIONALS = [
   {key:'gaspar-ba',name:'Gaspar',area:'BA',states:['BA'],aliases:['Gaspar','Vinícius Gaspar','Vinicius Gaspar'],planName:'Gaspar',billable:true},
   {key:'tiago-go-df',name:'Tiago',area:'GO/DF',states:['GO','DF'],aliases:['Tiago','Tiago GO','Tiago (GO)'],planName:'Tiago (GO)',billable:true},
   {key:'leonardo-rj',name:'Leonardo',area:'RJ',states:['RJ'],aliases:['Leonardo','Leonardo Nogueira'],planName:'Leonardo',billable:false},
+  {key:'comercial-local',name:'Comercial Local',area:'Octávio + Luana',states:[],aliases:['Octávio','Octavio','Octávio Ortado','Octavio Ortado','Luana','Luana Ortado'],planName:'Comercial Local',billable:false},
 ] as const
 export interface RegionalChecklist {
   visit_id: string; operations_contact: boolean; duration_minutes: number;
@@ -36,7 +37,7 @@ export function normalizeAtName(value:string) {
 }
 export function matchesRegionalIdentity(state:string,accountManager:string,regionalKey:string) {
   const definition=REGIONALS.find(item=>item.key===regionalKey)
-  if(!definition||!definition.states.includes(state.toUpperCase() as never))return false
+  if(!definition||(definition.states.length>0&&!definition.states.includes(state.toUpperCase() as never)))return false
   const manager=normalizeAtName(accountManager)
   return definition.aliases.some(alias=>{const normalized=normalizeAtName(alias);return manager===normalized||manager.startsWith(`${normalized} `)||manager.endsWith(` ${normalized}`)})
 }
@@ -49,8 +50,10 @@ export function matchesPlan(visit:Visit,plan:MonthlyPlan) {
 export function existingMonthVisits(visits:Visit[],clients:{id:string;state:string}[],period:string,at:string) {
   return visits.filter(v=>{
     const client=clients.find(c=>c.id===v.clientId),state=client?.state.toUpperCase()??''
-    if(v.status!=='Realizada'||!v.date.startsWith(period)||!REGIONAL_REPORT_STATES.includes(state))return false
+    if(v.status!=='Realizada'||!v.date.startsWith(period))return false
+    if(at==='comercial-local')return matchesRegionalIdentity(state,v.accountManager,at)
     if(!at)return Boolean(regionalForVisit(state,v.accountManager))
+    if(!REGIONAL_REPORT_STATES.includes(state))return false
     const definition=REGIONALS.find(item=>item.key===at)
     return definition?matchesRegionalIdentity(state,v.accountManager,definition.key):normalizeAtName(v.accountManager)===normalizeAtName(at)
   })
