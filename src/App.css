@@ -159,6 +159,7 @@
 .calendar-grid .calendar-event.prospecting{border-left-color:#6f86e8;background:rgba(111,134,232,.16)}
 .calendar-grid .calendar-event.prospecting small{color:#aab8ff;font-weight:800;text-transform:uppercase}
 .registration-choice{max-width:620px}
+.page-intro-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
 .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .choice-grid button{min-height:150px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--panel-soft);color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;gap:9px;text-align:left}
 .choice-grid button:hover{border-color:#4294a7;transform:translateY(-2px)}
@@ -166,7 +167,7 @@
 .prospecting-report .modal-heading p{display:flex;align-items:center;gap:6px}
 .prospecting-report .modal-actions a{text-decoration:none}
 .prospecting-modal{max-height:92vh;overflow:auto}
-@media(max-width:650px){.choice-grid{grid-template-columns:1fr}.choice-grid button{min-height:120px}}
+@media(max-width:650px){.choice-grid{grid-template-columns:1fr}.choice-grid button{min-height:120px}.page-intro-actions{display:grid;grid-template-columns:1fr;width:100%}.page-intro-actions button{width:100%}}
 @media(max-width:390px){
   .content{padding-inline:11px}
   .mobile-bottom-nav button{font-size:8px}
