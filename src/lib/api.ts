@@ -136,7 +136,7 @@ export async function updateUserAccess(user:UserAccessRecord){
   if(error) throw error
 }
 
-export async function updateClientManagementProfile(clientId:string,input:{relationship:Relationship;financial:Financial;training:'Sim'|'Não';accountManager:string;lastFleetChange:string}) {
+export async function updateClientManagementProfile(clientId:string,input:{relationship:Relationship;financial:Financial;training:'Sim'|'Não';accountManager:string;lastFleetChange:string;trelloUrl:string}) {
   if(!supabase) throw new Error('Ambiente seguro indisponível.')
   const {error}=await supabase.rpc('update_client_management_profile',{
     target_client_id:clientId,
@@ -147,6 +147,8 @@ export async function updateClientManagementProfile(clientId:string,input:{relat
     new_last_fleet_change:input.lastFleetChange?`${input.lastFleetChange}-01`:null,
   })
   if(error) throw error
+  const {error:trelloError}=await supabase.rpc('update_client_trello_link',{target_client_id:clientId,new_trello_url:input.trelloUrl.trim()||null})
+  if(trelloError) throw trelloError
   await supabase.functions.invoke('sync-client',{body:{clientId}})
 }
 

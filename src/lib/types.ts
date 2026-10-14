@@ -1,7 +1,7 @@
 export type Relationship = 'Excelente' | 'Sensível' | 'Crítico'
 export type Financial = 'Adimplente' | 'Inadimplência Moderada' | 'Inadimplente Crítico'
 export type VisitStatus = 'Realizada' | 'Programada' | 'Atrasada' | 'Cancelada' | 'Reagendada'
-export type VisitMotive = 'Relacionamento' | 'Acompanhamento operacional' | 'Reclamação' | 'Renovação' | 'Expansão/Nova oportunidade' | 'Treinamento' | 'Outro'
+export type VisitMotive = 'Relacionamento' | 'Acompanhamento operacional' | 'Reclamação' | 'Renovação' | 'Reversão de Cancelamento' | 'Expansão/Nova oportunidade' | 'Treinamento' | 'Outro'
 
 export interface Contact {
   id?: string
