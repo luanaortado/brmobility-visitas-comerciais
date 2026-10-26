@@ -17,8 +17,9 @@ export interface RegionalChecklist {
   email_recipient: string; email_sent_on: string; email_evidence: string;
   status: 'Pendente' | 'Ajustar' | 'Aprovada'; review_note: string;
   submitted_at?: string; reviewed_at?: string; reviewed_by?: string;
+  payment_status?: 'Pendente' | 'Enviado' | 'Não se aplica'; payment_sent_at?: string;
 }
-export interface MonthlyPlan {client_id:string; period:string; regional_name:string; planned_date:string; id?:string}
+export interface MonthlyPlan {client_id:string; period:string; regional_name:string; planned_date:string; id?:string; guidance:string; priority:'Normal'|'Alta'|'Urgente'; source:'Manual'}
 export function emptyChecklist(visitId: string): RegionalChecklist {
   return {visit_id:visitId,operations_contact:false,duration_minutes:0,misuse:'',training:'',improvements:'',actions:'',email_recipient:'',email_sent_on:'',email_evidence:'',status:'Pendente',review_note:''}
 }
@@ -29,8 +30,11 @@ export function monthEnd(period:string) {
 export function localDate(timestamp:string) {
   return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(timestamp))
 }
-export function withinCutoff(row:RegionalChecklist,period:string) {
-  return Boolean(row.submitted_at && localDate(row.submitted_at)<=monthEnd(period) && row.email_sent_on && row.email_sent_on<=monthEnd(period))
+export function requiresEmailForVisit(visit:Pick<Visit,'accountManager'>) {
+  return normalizeAtName(visit.accountManager).startsWith('leonardo')
+}
+export function withinCutoff(row:RegionalChecklist,period:string,emailRequired=true) {
+  return Boolean(row.submitted_at && localDate(row.submitted_at)<=monthEnd(period) && (!emailRequired || Boolean(row.email_sent_on && row.email_sent_on<=monthEnd(period))))
 }
 export function normalizeAtName(value:string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')
@@ -64,12 +68,12 @@ export function missingCriteria(visit: Visit, row: RegionalChecklist) {
   if(!visit.receivedBy.trim() || !['Gestor','Supervisor'].includes(visit.receivedByRole) || !row.operations_contact) missing.push('Gestor ou supervisor de operações')
   if(!(row.duration_minutes > 0 && row.duration_minutes <= 15)) missing.push('Duração de até 15 minutos')
   if(!visit.viewedTicketReport || !visit.notes.trim() || (visit.hasComplaint && !visit.complaint?.trim()) || !row.misuse.trim() || !row.training.trim() || !row.improvements.trim() || !row.actions.trim()) missing.push('Pauta e encaminhamentos completos')
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email_recipient) || !row.email_sent_on || row.email_sent_on < visit.date || !row.email_evidence.trim()) missing.push('E-mail ao anfitrião com comprovante')
+  if(requiresEmailForVisit(visit) && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email_recipient) || !row.email_sent_on || row.email_sent_on < visit.date || !row.email_evidence.trim())) missing.push('E-mail ao anfitrião com comprovante')
   return missing
 }
 export function validatedVisits(visits: Visit[], rows: RegionalChecklist[], plans:MonthlyPlan[],period:string) {
   const seen=new Set<string>()
-  return visits.filter(v=>plans.some(p=>matchesPlan(v,p)&&p.period.slice(0,7)===period)&&rows.some(r=>r.visit_id===v.id && r.status==='Aprovada' && missingCriteria(v,r).length===0 && withinCutoff(r,period))).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).filter(v=>{const key=`${v.clientId}:${v.date.slice(0,7)}`;if(seen.has(key))return false;seen.add(key);return true})
+  return visits.filter(v=>plans.some(p=>matchesPlan(v,p)&&p.period.slice(0,7)===period)&&rows.some(r=>r.visit_id===v.id && r.status==='Aprovada' && missingCriteria(v,r).length===0 && withinCutoff(r,period,requiresEmailForVisit(v)))).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).filter(v=>{const key=`${v.clientId}:${v.date.slice(0,7)}`;if(seen.has(key))return false;seen.add(key);return true})
 }
 export function csvCell(value: unknown) {const s=String(value??'');return `"${(/^[=+\-@\t\r]/.test(s)?"'":'')+s.replaceAll('"','""')}"`}
 export function visitReport(visits:Visit[],rows:RegionalChecklist[],plans:MonthlyPlan[],period:string,siteName:(id:string)=>string,regionalName:(visit:Visit)=>string=visit=>visit.accountManager) {
