@@ -26,7 +26,7 @@ function ChecklistChoice({label,noInfo,addLabel,value,onChange}:{label:string;no
 export function RegionalClosing({clients,visits,user,demoMode,onLiveAccess,onProfile,onSchedule,onRegister,onAgenda,onScheduleAny,onRegisterAny}:{clients:Client[];visits:Visit[];user:CurrentUser|null;demoMode:boolean;onLiveAccess:()=>void;onProfile:(client:Client)=>void;onSchedule:(client:Client)=>void;onRegister:(client:Client,scheduled?:Visit)=>void;onAgenda:()=>void;onScheduleAny:()=>void;onRegisterAny:()=>void}) {
   const today=new Date(),initialMonth=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`
   const [period,setPeriod]=useState(initialMonth),[regional,setRegional]=useState(''),[rows,setRows]=useState<RegionalChecklist[]>([]),[editing,setEditing]=useState<Visit|null>(null),[reportVisit,setReportVisit]=useState<Visit|null>(null),[draft,setDraft]=useState<RegionalChecklist|null>(null),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[ready,setReady]=useState(demoMode),[reportTab,setReportTab]=useState<ReportTab>('pending'),[reviewingAdjustment,setReviewingAdjustment]=useState<Visit|null>(null),[adjustmentNote,setAdjustmentNote]=useState('')
-  const isManagement=demoMode||Boolean(user?.active&&['admin','manager','viewer'].includes(user.role))
+  const isManagement=(demoMode&&!user)||Boolean(user?.active&&['admin','manager','viewer'].includes(user.role))
   const canManage=demoMode||Boolean(user?.active&&['admin','manager'].includes(user.role))
   const canReview=demoMode||Boolean(user?.permissions.validateRegionalVisits)
   const canEdit=demoMode||Boolean(user?.active&&user.permissions.recordVisits)
