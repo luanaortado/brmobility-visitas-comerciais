@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle, CalendarDays, CheckCircle2, ChevronRight, Clock3, Download, FileText, MapPin, WalletCards } from 'lucide-react'
 import type { Client, CurrentUser, Visit } from '../lib/types'
-import { downloadVisitCalendar, matchesPlan, normalizeAtName, regionalForVisit, REGIONALS } from '../lib/regional'
+import { allowsAdHocVisits, downloadVisitCalendar, matchesPlan, normalizeAtName, regionalForVisit, REGIONALS } from '../lib/regional'
 import type { MonthlyPlan, RegionalChecklist } from '../lib/regional'
 
 type Bucket = 'to-visit' | 'scheduled' | 'validation' | 'payment' | 'done'
@@ -14,13 +14,17 @@ function belongsToUser(plan:MonthlyPlan,user:CurrentUser) {
   }))
 }
 
-export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,onPeriod,onProfile,onSchedule,onRegister,onComplete,onAgenda}:{
+export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,onPeriod,onProfile,onSchedule,onRegister,onComplete,onAgenda,onScheduleAny,onRegisterAny}:{
   clients:Client[];visits:Visit[];plans:MonthlyPlan[];checks:RegionalChecklist[];user:CurrentUser;period:string;
-  onPeriod:(period:string)=>void;onProfile:(client:Client)=>void;onSchedule:(client:Client)=>void;onRegister:(client:Client,scheduled?:Visit)=>void;onComplete:(visit:Visit)=>void;onAgenda:()=>void;
+  onPeriod:(period:string)=>void;onProfile:(client:Client)=>void;onSchedule:(client:Client)=>void;onRegister:(client:Client,scheduled?:Visit)=>void;onComplete:(visit:Visit)=>void;onAgenda:()=>void;onScheduleAny:()=>void;onRegisterAny:()=>void;
 }) {
   const [adjustmentPrompt,setAdjustmentPrompt]=useState<string|null>(null)
   const assignments=plans.filter(plan=>plan.period.slice(0,7)===period&&belongsToUser(plan,user))
-  const details=assignments.map(plan=>{
+  const canAddExtra=allowsAdHocVisits(user.fullName)&&user.permissions.recordVisits
+  const assignedVisitIds=new Set(assignments.flatMap(plan=>visits.filter(visit=>matchesPlan(visit,plan)).map(visit=>visit.id)))
+  const directVisits=canAddExtra?visits.filter(visit=>visit.date.startsWith(period)&&visit.representativeId===user.id&&!assignedVisitIds.has(visit.id)):[]
+  const directAssignments:MonthlyPlan[]=[...new Map(directVisits.map(visit=>[visit.clientId,visit])).values()].map(visit=>({id:`extra-${visit.id}`,client_id:visit.clientId,period:`${period}-01`,regional_name:user.fullName,planned_date:visit.date,guidance:'Visita/reunião incluída diretamente pelo responsável.',priority:'Média',source:'Manual'}))
+  const details=[...assignments,...directAssignments].map(plan=>{
     const client=clients.find(item=>item.id===plan.client_id)
     const related=visits.filter(visit=>visit.clientId===plan.client_id&&visit.date.startsWith(period)&&(visit.representativeId===user.id||matchesPlan(visit,plan)))
     const realized=related.find(visit=>visit.status==='Realizada')
@@ -45,6 +49,7 @@ export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,
   ]
   return <section className="regional-mobile-dashboard">
     <header className="regional-mobile-header"><div><span className="eyebrow">MINHA CARTEIRA MENSAL</span><h1>Olá, {user.fullName.split(' ')[0]}</h1><p>Veja as prioridades, organize sua agenda e registre as visitas pelo celular.</p></div><label>Mês<input type="month" value={period} onInput={event=>onPeriod(event.currentTarget.value)}/></label></header>
+    {canAddExtra&&<div className="regional-quick-actions"><button className="primary" onClick={onScheduleAny}><CalendarDays size={17}/> Agendar visita/reunião extra</button><button className="secondary" onClick={onRegisterAny}><CheckCircle2 size={17}/> Registrar visita/reunião realizada</button></div>}
     <div className="regional-dashboard-cards">{cards.map(([key,label,help,Icon])=><a href={`#regional-${key}`} onClick={key==='scheduled'?event=>{event.preventDefault();onAgenda()}:undefined} key={key}><Icon size={20}/><span>{label}</span><strong>{groups[key].length}</strong><small>{help}</small><ChevronRight size={17}/></a>)}</div>
     {cards.map(([key,label])=><section className="regional-assignment-section" id={`regional-${key}`} key={key}>
       <div className="regional-section-title"><div><span className="eyebrow">{label.toUpperCase()}</span><h2>{label}</h2></div><span className="count-badge">{groups[key].length}</span></div>

@@ -33,7 +33,10 @@ export function localDate(timestamp:string) {
   return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(timestamp))
 }
 export function requiresEmailForVisit(visit:Pick<Visit,'accountManager'>) {
-  const name=normalizeAtName(visit.accountManager)
+  return allowsAdHocVisits(visit.accountManager)
+}
+export function allowsAdHocVisits(accountManager:string) {
+  const name=normalizeAtName(accountManager)
   return name.startsWith('leonardo')||name.startsWith('octavio')
 }
 export function withinCutoff(row:RegionalChecklist,period:string,emailRequired=true) {
