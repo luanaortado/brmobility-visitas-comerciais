@@ -115,5 +115,7 @@ export interface CurrentUser {
     editContacts: boolean
     recordVisits: boolean
     manageUsers: boolean
+    validateRegionalVisits: boolean
+    accessTrello: boolean
   }
 }

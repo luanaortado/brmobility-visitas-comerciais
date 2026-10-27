@@ -22,13 +22,14 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
   const {data:{user}}=await supabase.auth.getUser()
   const clientResult=await supabase.rpc('get_visible_clients')
   if (clientResult.error) throw clientResult.error
-  const [visitResult, prospectingResult, profileResult, contactResult, timelineResult, noteResult] = await Promise.all([
+  const [visitResult, prospectingResult, profileResult, contactResult, timelineResult, noteResult, regionalResult] = await Promise.all([
     supabase.from('visits').select('*').is('archived_at',null).order('visit_date', { ascending: false }),
     supabase.from('prospecting_visits').select('*').is('archived_at',null).order('visit_date', { ascending: false }),
     user ? supabase.from('profiles').select('*').eq('id',user.id).maybeSingle() : Promise.resolve({data:null,error:null}),
     supabase.from('client_contacts').select('*').eq('active',true).order('is_primary',{ascending:false}),
     supabase.from('client_timeline').select('*').order('occurred_at',{ascending:false}).limit(1000),
     supabase.from('client_notes').select('client_id,note'),
+    user ? supabase.from('regional_directory').select('can_access_trello').eq('profile_id',user.id).maybeSingle() : Promise.resolve({data:null,error:null}),
   ])
   const allContacts=(contactResult.data??[]) as Record<string,unknown>[]
   const timeline=(timelineResult.data??[]) as Record<string,unknown>[]
@@ -63,7 +64,7 @@ export async function fetchWorkspaceData(): Promise<{ clients: Client[]; visits:
   const p=profileResult.data as Record<string,unknown>|null
   const role=(p?.role??'representative') as CurrentUser['role']
   const elevated=role==='admin'||role==='manager'
-  const currentUser:CurrentUser|null=p?{id:String(p.id),fullName:String(p.full_name),role,active:Boolean(p.active),permissions:{viewFinancial:elevated||Boolean(p.can_view_financial),editFinancial:elevated||Boolean(p.can_edit_financial),viewContractValue:elevated||Boolean(p.can_view_contract_value),editProfile:elevated||Boolean(p.can_edit_profile),editContacts:elevated||Boolean(p.can_edit_contacts),recordVisits:elevated||Boolean(p.can_record_visits),manageUsers:role==='admin'}}:null
+  const currentUser:CurrentUser|null=p?{id:String(p.id),fullName:String(p.full_name),role,active:Boolean(p.active),permissions:{viewFinancial:elevated||Boolean(p.can_view_financial),editFinancial:elevated||Boolean(p.can_edit_financial),viewContractValue:elevated||Boolean(p.can_view_contract_value),editProfile:elevated||Boolean(p.can_edit_profile),editContacts:elevated||Boolean(p.can_edit_contacts),recordVisits:elevated||Boolean(p.can_record_visits),manageUsers:role==='admin',validateRegionalVisits:Boolean(p.can_validate_regional_visits),accessTrello:elevated||role==='viewer'||Boolean(regionalResult.data?.can_access_trello)}}:null
   return { clients, visits, prospectingVisits, currentUser }
 }
 
