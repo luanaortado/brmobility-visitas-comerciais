@@ -21,6 +21,15 @@ const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'sho
 const fullDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 const toDate = (value: string) => new Date(`${value}T12:00:00`)
 const normalizeName = (value:string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()
+const demoViewAsUsers:ViewAsUser[]=[
+  {id:'demo-octavio',fullName:'Octávio Augusto',role:'representative',states:['SP']},
+  {id:'demo-leonardo',fullName:'Leonardo da Silva Nogueira',role:'representative',states:['RJ']},
+  {id:'demo-matson',fullName:'Matson Kleber Vaz de Souza',role:'representative',states:['PA']},
+  {id:'demo-tarcisio',fullName:'Tarcísio Alves de Lima Junior',role:'representative',states:['CE']},
+  {id:'demo-tiago-pe',fullName:'Tiago Fernandes da Silva',role:'representative',states:['PE']},
+  {id:'demo-tiago-go',fullName:'Tiago Lopes Ferreira',role:'representative',states:['GO','DF']},
+  {id:'demo-gaspar',fullName:'Vinicius Gaspar Manso',role:'representative',states:['BA']},
+]
 
 function Logo({ theme, compact = false }: { theme: Theme; compact?: boolean }) {
   return <div className={`brand-lockup ${compact?'compact':''}`}><img src={`/assets/logo-BRMobility-${theme==='dark'?'white':'black'}-green.svg`} alt="BR Mobility — Mobilidade Elétrica Corporativa"/></div>
@@ -74,8 +83,8 @@ const navigation = [
 function Sidebar({ page,onPage,open,close,theme,demoMode,user,canViewAs=false,viewAsUsers=[],viewingAs,onViewAs }: { page:Page;onPage:(p:Page)=>void;open:boolean;close:()=>void;theme:Theme;demoMode:boolean;user:CurrentUser|null;canViewAs?:boolean;viewAsUsers?:ViewAsUser[];viewingAs?:ViewAsUser|null;onViewAs?:(user:ViewAsUser|null)=>void }) {
   const [profileMenu,setProfileMenu]=useState(false)
   const items=navigation.filter(item=>item.id!=='admin'||demoMode||user?.permissions.manageUsers)
-  const name=demoMode?'Luana Ortado':user?.fullName||'Usuário',initials=name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase(),role=user?.role==='viewer'?'Visualizador':user?.role==='admin'?'Administradora':'Usuário autorizado'
-  return <>{open&&<button className="sidebar-scrim" onClick={close}/>}<aside className={`sidebar ${open?'mobile-open':''}`}><Logo theme={theme}/><nav><small>MENU PRINCIPAL</small>{items.map(item=><button key={item.id} className={page===item.id?'active':''} onClick={()=>{onPage(item.id);close()}}><item.icon size={18}/><span>{item.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="demo-badge"><span>{viewingAs?'MODO DE VISUALIZAÇÃO':user?.role==='viewer'?'SOMENTE LEITURA':demoMode?'DEMONSTRAÇÃO':'AMBIENTE SEGURO'}</span><small>{viewingAs?'Nenhuma alteração será permitida':demoMode?'Dados ilustrativos':'Dados da carteira'}</small></div><div className="profile-mini"><div className="avatar">{initials}</div><div><b>{name}</b><small>{viewingAs?'Visualizando como usuário':role}</small></div>{canViewAs?<button className="profile-more" aria-label="Opções do perfil" aria-expanded={profileMenu} onClick={()=>setProfileMenu(value=>!value)}><MoreHorizontal size={18}/></button>:<MoreHorizontal size={18}/>} {profileMenu&&canViewAs&&<div className="view-as-menu"><b>Visualizar como</b><button className={!viewingAs?'active':''} onClick={()=>{onViewAs?.(null);setProfileMenu(false)}}>Minha visualização</button>{viewAsUsers.map(option=><button key={option.id} className={viewingAs?.id===option.id?'active':''} onClick={()=>{onViewAs?.(option);setProfileMenu(false)}}><span>{option.fullName}</span><small>{option.role==='representative'?(option.states.join('/')||'Regional'):option.role==='viewer'?'Observador':'Gestão'}</small></button>)}</div>}</div></div></aside></>
+  const name=demoMode?'Luana Ortado':user?.fullName||'Usuário',role=user?.role==='viewer'?'Visualizador':user?.role==='admin'?'Administradora':'Usuário autorizado'
+  return <>{open&&<button className="sidebar-scrim" onClick={close}/>}<aside className={`sidebar ${open?'mobile-open':''}`}><Logo theme={theme}/><nav><small>MENU PRINCIPAL</small>{items.map(item=><button key={item.id} className={page===item.id?'active':''} onClick={()=>{onPage(item.id);close()}}><item.icon size={18}/><span>{item.label}</span></button>)}</nav><div className="sidebar-bottom"><div className="demo-badge"><span>{viewingAs?'MODO DE VISUALIZAÇÃO':user?.role==='viewer'?'SOMENTE LEITURA':demoMode?'DEMONSTRAÇÃO':'AMBIENTE SEGURO'}</span><small>{viewingAs?'Nenhuma alteração será permitida':demoMode?'Dados ilustrativos':'Dados da carteira'}</small></div><div className="profile-mini"><div><b>{name}</b><small>{viewingAs?'Visualizando como usuário':role}</small></div>{canViewAs?<button className="profile-more" aria-label="Opções do perfil" aria-expanded={profileMenu} onClick={()=>setProfileMenu(value=>!value)}><MoreHorizontal size={18}/></button>:<MoreHorizontal size={18}/>} {profileMenu&&canViewAs&&<div className="view-as-menu"><b>Visualizar como</b><button className={!viewingAs?'active':''} onClick={()=>{onViewAs?.(null);setProfileMenu(false)}}>Minha visualização</button>{viewAsUsers.map(option=><button key={option.id} className={viewingAs?.id===option.id?'active':''} onClick={()=>{onViewAs?.(option);setProfileMenu(false)}}><span>{option.fullName}</span><small>{option.role==='representative'?(option.states.join('/')||'Regional'):option.role==='viewer'?'Observador':'Gestão'}</small></button>)}</div>}</div></div></aside></>
 }
 function MobileNav({ page,onPage,canManageUsers,regionalUser=false }: {page:Page;onPage:(p:Page)=>void;canManageUsers:boolean;regionalUser?:boolean}) {
   const labels:Record<Page,string>={dashboard:'Início',clients:'Clientes',agenda:'Agenda',visits:'Histórico',admin:'Acessos',regional:'Relatórios'}
@@ -210,8 +219,12 @@ function App() {
   useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>{if(data.session){setDemoMode(false);setLogged(true)}setAuthReady(true)});const {data}=supabase.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);setLogged(Boolean(session));if(session)setDemoMode(false)});return()=>data.subscription.unsubscribe()},[])
   useEffect(()=>{ if(logged&&!demoMode) fetchWorkspaceData().then(data=>{setClients(data.clients);setVisits(data.visits);setProspectingVisits(data.prospectingVisits);setCurrentUser(data.currentUser);setLoadError('')}).catch(()=>{setClients([]);setVisits([]);setProspectingVisits([]);setLoadError('Não foi possível carregar os dados.')}) },[logged,demoMode])
   const normalizedCurrentName=normalizeName(currentUser?.fullName??'')
-  const canViewAs=Boolean(currentUser&&(normalizedCurrentName.startsWith('luana')||normalizedCurrentName.startsWith('jessica')))
-  useEffect(()=>{if(!canViewAs||demoMode){setViewAsUsers([]);setViewingAs(null);return}fetchViewAsUsers().then(setViewAsUsers).catch(()=>setLoadError('Não foi possível carregar a visualização por usuário.'))},[canViewAs,demoMode])
+  const canViewAs=demoMode||Boolean(currentUser&&(currentUser.permissions.manageUsers||normalizedCurrentName.startsWith('luana')||normalizedCurrentName.startsWith('jessica')))
+  useEffect(()=>{
+    if(!canViewAs){setViewAsUsers([]);setViewingAs(null);return}
+    if(demoMode){setViewAsUsers(demoViewAsUsers);return}
+    fetchViewAsUsers().then(setViewAsUsers).catch(()=>setLoadError('Não foi possível carregar a visualização por usuário.'))
+  },[canViewAs,demoMode])
   useEffect(()=>{if(currentUser&&!currentUser.permissions.manageUsers&&page==='admin')setPage('dashboard')},[currentUser,page])
   const titles=useMemo(()=>({dashboard:'Visão Geral',clients:'Carteira de Clientes',agenda:'Agenda Comercial',visits:'Histórico de Visitas/Reuniões',admin:'Administração',regional:'Relatório de Visitas'}),[])
   function toggleTheme(){setTheme(current=>{const next=current==='dark'?'light':'dark';localStorage.setItem('brmobility-theme',next);return next})}
