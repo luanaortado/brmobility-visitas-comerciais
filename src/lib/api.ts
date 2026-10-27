@@ -14,6 +14,14 @@ export interface UserAccessRecord {
   editContacts:boolean
   recordVisits:boolean
 }
+export interface ViewAsUser {id:string;fullName:string;role:CurrentUser['role'];states:string[]}
+
+export async function fetchViewAsUsers():Promise<ViewAsUser[]> {
+  if(!supabase)return []
+  const {data,error}=await supabase.rpc('list_view_as_users')
+  if(error)throw error
+  return ((data??[]) as Record<string,unknown>[]).map(row=>({id:String(row.id),fullName:String(row.full_name),role:String(row.role) as CurrentUser['role'],states:Array.isArray(row.states)?row.states.map(String):[]}))
+}
 
 const displayDate = (value: string | null) => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`)) : 'Não informado'
 

@@ -70,7 +70,6 @@ export function missingCriteria(visit: Visit, row: RegionalChecklist) {
   const missing: string[] = []
   if(visit.status !== 'Realizada' || visit.meetingMode === 'Videoconferência') missing.push('Visita presencial realizada')
   if(!visit.receivedBy.trim() || !['Gestor','Supervisor'].includes(visit.receivedByRole) || !row.operations_contact) missing.push('Gestor ou supervisor de operações')
-  if(!(row.duration_minutes > 0 && row.duration_minutes <= 15)) missing.push('Duração de até 15 minutos')
   if(!visit.viewedTicketReport || !visit.notes.trim() || (visit.hasComplaint && !visit.complaint?.trim()) || !row.misuse.trim() || !row.training.trim() || !row.improvements.trim() || !row.actions.trim()) missing.push('Pauta e encaminhamentos completos')
   if(requiresEmailForVisit(visit) && (!row.email_formalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email_recipient))) missing.push('Formalização por e-mail')
   return missing
@@ -82,7 +81,7 @@ export function validatedVisits(visits: Visit[], rows: RegionalChecklist[], plan
 export function csvCell(value: unknown) {const s=String(value??'');return `"${(/^[=+\-@\t\r]/.test(s)?"'":'')+s.replaceAll('"','""')}"`}
 export function visitReport(visits:Visit[],rows:RegionalChecklist[],plans:MonthlyPlan[],period:string,siteName:(id:string)=>string,regionalName:(visit:Visit)=>string=visit=>visit.accountManager) {
   const included=new Set(validatedVisits(visits,rows,plans,period).map(v=>v.id))
-  return [['Mês','AT','Posto','Data prevista','Data da visita','Quem recebeu','Cargo','Duração (min)','Chamados apresentados','Reclamações','Pauta','Mau uso','Treinamento','Melhorias','Encaminhamentos','E-mail do anfitrião','Formalizada por e-mail','Registro enviado em','Status','Pagamento','Deslocamento (R$)','Revisado em','Observação','Valor da visita (R$)'],...visits.map(v=>{const r=rows.find(x=>x.visit_id===v.id),p=plans.find(x=>matchesPlan(v,x));return [period,regionalName(v),siteName(v.clientId),p?.planned_date??'',v.date,v.receivedBy,v.receivedByRole,r?.duration_minutes??'',v.viewedTicketReport?'Sim':'Não',v.hasComplaint?v.complaint:'Sem reclamações',v.notes,r?.misuse,r?.training,r?.improvements,r?.actions,r?.email_recipient,r?.email_formalized?'Sim':'Não',r?.submitted_at,r?.status??'Sem checklist',r?.payment_status??'',r?.travel_approved?r.travel_amount:0,r?.reviewed_at,r?.review_note,included.has(v.id)?VISIT_FEE:0]})]
+  return [['Mês','AT','Posto','Data prevista','Data da visita','Quem recebeu','Cargo','Chamados apresentados','Reclamações','Pauta','Mau uso','Treinamento','Melhorias','Encaminhamentos','E-mail do anfitrião','Formalizada por e-mail','Registro enviado em','Status','Pagamento','Deslocamento (R$)','Revisado em','Observação','Valor da visita (R$)'],...visits.map(v=>{const r=rows.find(x=>x.visit_id===v.id),p=plans.find(x=>matchesPlan(v,x));return [period,regionalName(v),siteName(v.clientId),p?.planned_date??'',v.date,v.receivedBy,v.receivedByRole,v.viewedTicketReport?'Sim':'Não',v.hasComplaint?v.complaint:'Sem reclamações',v.notes,r?.misuse,r?.training,r?.improvements,r?.actions,r?.email_recipient,r?.email_formalized?'Sim':'Não',r?.submitted_at,r?.status??'Sem checklist',r?.payment_status??'',r?.travel_approved?r.travel_amount:0,r?.reviewed_at,r?.review_note,included.has(v.id)?VISIT_FEE:0]})]
 }
 
 export function downloadVisitCalendar(visit:Visit,siteName:string) {

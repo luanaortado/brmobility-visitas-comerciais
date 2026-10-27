@@ -1,6 +1,7 @@
-import { CalendarDays, CheckCircle2, ChevronRight, Clock3, Download, FileText, MapPin, WalletCards } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, CalendarDays, CheckCircle2, ChevronRight, Clock3, Download, FileText, MapPin, WalletCards } from 'lucide-react'
 import type { Client, CurrentUser, Visit } from '../lib/types'
-import { downloadVisitCalendar, matchesPlan, normalizeAtName, REGIONALS } from '../lib/regional'
+import { downloadVisitCalendar, matchesPlan, normalizeAtName, regionalForVisit, REGIONALS } from '../lib/regional'
 import type { MonthlyPlan, RegionalChecklist } from '../lib/regional'
 
 type Bucket = 'to-visit' | 'scheduled' | 'validation' | 'payment' | 'done'
@@ -17,6 +18,7 @@ export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,
   clients:Client[];visits:Visit[];plans:MonthlyPlan[];checks:RegionalChecklist[];user:CurrentUser;period:string;
   onPeriod:(period:string)=>void;onProfile:(client:Client)=>void;onSchedule:(client:Client)=>void;onRegister:(client:Client,scheduled?:Visit)=>void;onComplete:(visit:Visit)=>void;onAgenda:()=>void;
 }) {
+  const [adjustmentPrompt,setAdjustmentPrompt]=useState<string|null>(null)
   const assignments=plans.filter(plan=>plan.period.slice(0,7)===period&&belongsToUser(plan,user))
   const details=assignments.map(plan=>{
     const client=clients.find(item=>item.id===plan.client_id)
@@ -24,8 +26,9 @@ export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,
     const realized=related.find(visit=>visit.status==='Realizada')
     const scheduled=related.find(visit=>['Programada','Reagendada','Atrasada'].includes(visit.status))
     const check=realized?checks.find(item=>item.visit_id===realized.id):undefined
+    const billable=client?regionalForVisit(client.state,realized?.accountManager??user.fullName)?.billable!==false:true
     let bucket:Bucket='to-visit'
-    if(check?.status==='Aprovada'&&(check.payment_status==='Pago'||check.payment_status==='Não se aplica'))bucket='done'
+    if(check?.status==='Aprovada'&&billable&&check.payment_status==='Pago')bucket='done'
     else if(check?.status==='Aprovada')bucket='payment'
     else if(realized)bucket='validation'
     else if(scheduled)bucket='scheduled'
@@ -35,6 +38,8 @@ export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,
     'to-visit':details.filter(item=>item.bucket==='to-visit'),scheduled:details.filter(item=>item.bucket==='scheduled'),validation:details.filter(item=>item.bucket==='validation'),payment:details.filter(item=>item.bucket==='payment'),done:details.filter(item=>item.bucket==='done'),
   }
   const nonBillable=REGIONALS.some(r=>!r.billable&&r.aliases.some(alias=>normalizeAtName(user.fullName).startsWith(normalizeAtName(alias))))
+  const firstAdjustment=details.find(item=>item.check?.status==='Ajustar'&&item.realized)
+  useEffect(()=>{if(firstAdjustment?.realized?.id)setAdjustmentPrompt(current=>current??firstAdjustment.realized!.id)},[firstAdjustment?.realized?.id])
   const cards:[Bucket,string,string,typeof MapPin][]=[
     ['to-visit','Visitas/Reuniões a Realizar','Planejamento do mês',MapPin],['scheduled','Visitas Agendadas','Abrir agenda',CalendarDays],['validation','Aguardando Validação','Enviadas à gestão',Clock3],['payment',nonBillable?'Visitas Validadas':'Pagamento Pendente',nonBillable?'Conferência':'Aguardando fechamento',nonBillable?CheckCircle2:WalletCards],['done',nonBillable?'Histórico Validado':'Pagamento Realizado','Consultar e exportar',CheckCircle2],
   ]
@@ -54,5 +59,6 @@ export function RegionalVisitDashboard({clients,visits,plans,checks,user,period,
         <div className="regional-card-actions"><button className="secondary" onClick={()=>onProfile(client!)}>Perfil e chamados</button>{key==='to-visit'&&<><button className="primary" onClick={()=>onSchedule(client!)}>Agendar visita/reunião</button><button className="secondary" onClick={()=>onRegister(client!)}>Registrar já realizada</button></>}{key==='scheduled'&&scheduled&&<><button className="secondary" onClick={()=>downloadVisitCalendar(scheduled,client!.siteName)}><Download size={15}/> Minha agenda</button><button className="primary" onClick={()=>onRegister(client!,scheduled)}>Registrar visita</button></>}{key==='validation'&&realized&&check?.status!=='Pendente'&&<button className="primary" onClick={()=>onComplete(realized)}>{check?.status==='Ajustar'?'Corrigir e reenviar':'Completar e enviar'}</button>}</div>
       </article>)}
     </section>)}
+    {adjustmentPrompt&&firstAdjustment?.realized?.id===adjustmentPrompt&&<div className="modal-backdrop"><section className="modal regional-modal regional-adjustment-popup" role="dialog" aria-modal="true" aria-labelledby="regional-adjustment-title"><AlertCircle size={30}/><span className="eyebrow">AJUSTE SOLICITADO</span><h2 id="regional-adjustment-title">Revise a visita de {firstAdjustment.client!.siteName}</h2><p>{firstAdjustment.check?.review_note}</p><div className="regional-actions"><button className="secondary" onClick={()=>setAdjustmentPrompt(null)}>Ver depois</button><button className="primary" onClick={()=>{setAdjustmentPrompt(null);onComplete(firstAdjustment.realized!)}}>Corrigir agora</button></div></section></div>}
   </section>
 }
